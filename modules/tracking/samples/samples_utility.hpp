@@ -17,6 +17,8 @@ inline cv::Ptr<cv::Tracker> createTrackerByName(cv::String name)
         tracker = cv::TrackerMedianFlow::create();
     else if (name == "MIL")
         tracker = cv::TrackerMIL::create();
+    else if (name == "STRUCK")
+        tracker = cv::TrackerStruck::create();
     else if (name == "GOTURN")
         tracker = cv::TrackerGOTURN::create();
     else if (name == "MOSSE")

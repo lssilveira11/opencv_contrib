@@ -657,7 +657,7 @@ Ptr<TrackerStateEstimatorStruckSVM::SVMSupportVector> cv::TrackerStateEstimatorS
 	new_sv->x = sp;
 	new_sv->x->refCount++;
 	
-	assert(y >= 0);
+	CV_Assert(y >= 0);
 	new_sv->y = y;
 	new_sv->g = g;
 
@@ -778,8 +778,8 @@ void cv::TrackerStateEstimatorStruckSVM::Optimize(Ptr<SVMSupportVector> & ypos, 
 
 	}
 
-	assert(yneg);
-	assert(ypos);
+	CV_Assert(yneg);
+	CV_Assert(ypos);
 }
 
 void cv::TrackerStateEstimatorStruckSVM::SMOStep(Ptr<SVMSupportVector> svPos, Ptr<SVMSupportVector> svNeg)
@@ -868,7 +868,7 @@ void cv::TrackerStateEstimatorStruckSVM::BudgetMaintenance()
 						}
 					}
 
-					assert(svr);
+					CV_Assert(svr);
 
 					double grad = (sv->beta * sv->beta) * (
 						GaussianKernelEval(sv->xy(), sv->xy())
@@ -885,8 +885,8 @@ void cv::TrackerStateEstimatorStruckSVM::BudgetMaintenance()
 				}
 			} // end for
 
-			assert(svPos);
-			assert(svNeg);
+			CV_Assert(svPos);
+			CV_Assert(svNeg);
 
 			svPos->beta += svNeg->beta;
 

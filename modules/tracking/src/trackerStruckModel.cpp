@@ -40,7 +40,7 @@
  //M*/
 
 #include "precomp.hpp"
-#include "TrackerStruckModel.hpp"
+#include "trackerStruckModel.hpp"
 
 /**
  * TrackerStruckModel

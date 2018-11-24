@@ -40,7 +40,7 @@
  //M*/
 
 #include "precomp.hpp"
-#include "TrackerStruckModel.hpp" 
+#include "trackerStruckModel.hpp" 
 
 
 /*---------------------------
@@ -73,9 +73,14 @@ namespace cv
     /*
     * Constructor
     */
-    Ptr<TrackerStruck> TrackerStruck::createTracker(const TrackerStruck::Params &parameters){
+    Ptr<TrackerStruck> TrackerStruck::create(const TrackerStruck::Params &parameters){
         return Ptr<TrackerStruckImpl>(new TrackerStruckImpl(parameters));
-    } 
+    }
+
+    Ptr<TrackerStruck> TrackerStruck::create(){
+        return Ptr<TrackerStruckImpl>(new TrackerStruckImpl());
+    }
+
     TrackerStruckImpl::TrackerStruckImpl( const TrackerStruck::Params &parameters ) :
         params( parameters )
     {
@@ -97,7 +102,7 @@ namespace cv
 			const float n = (float)norm(resps[0].row(i));
 
 			for (int j = 0; j < resps[0].cols; j++) {
-				Mat_<float>(resps[0])(i, j) /= n;
+				(Mat_<float>(resps[0]))(i, j) /= n;
 			}
 		}
 	}	
@@ -252,5 +257,7 @@ namespace cv
     void TrackerStruck::Params::write( cv::FileStorage& fs ) const{
 
     }
+
+
 
 } /* namespace cv */

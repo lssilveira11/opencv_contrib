@@ -806,7 +806,7 @@ public:
 		Rect2f rectY();
 	};
 
-	/** @brief Implementation of the target state for TrackerAdaBoostingTargetState
+	/** @brief Implementation of the target state for TrackerStruckTargetState
 	*/
 	class TrackerStruckTargetState : public TrackerTargetState
 	{
@@ -858,8 +858,8 @@ private:
 	Rect2f centre;
 	int searchRadius;
 
-	std::vector<Ptr<SVMSupportPattern>> supportPatterns;
-	std::vector<Ptr<SVMSupportVector>> supportVectors;
+	std::vector<Ptr<SVMSupportPattern> > supportPatterns;
+	std::vector<Ptr<SVMSupportVector> > supportVectors;
 
 	void Evaluate(ConfidenceMap & map);
 	
@@ -1445,16 +1445,20 @@ public:
         */
         void write( FileStorage& fs ) const;
         
-        int   searchRadius;
-        double	svmC;
-        int		svmBudgetSize;
-		int		customSeed;
+        int searchRadius;
+        double svmC;
+        int svmBudgetSize;
+        int customSeed;
 	};
 
     /** @brief Constructor
     @param parameters STRUCK parameters TrackerStruck::Params
     */
-    BOILERPLATE_CODE("STRUCK",TrackerStruck);
+    static Ptr<TrackerStruck> create(const TrackerStruck::Params &parameters);
+
+    CV_WRAP static Ptr<TrackerStruck> create();
+
+    virtual ~TrackerStruck() CV_OVERRIDE {}
 };
 
 /** @brief GOTURN (@cite GOTURN) is kind of trackers based on Convolutional Neural Networks (CNN). While taking all advantages of CNN trackers,

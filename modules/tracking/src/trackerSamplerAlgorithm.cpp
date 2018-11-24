@@ -455,7 +455,7 @@ bool TrackerSamplerCircular::radialSamples(const Mat & image, std::vector<Mat>& 
 	int rd = 2 * params.radius;
 
 	float rstep = (float)rd / params.rotations;
-	float tstep = 2 * (float)3.14159265358979323846 / params.translations;
+	float tstep = 2 * (float)CV_PI / params.translations;
 	sample.push_back(image( center ));
 
 	for (int ir = 1; ir <= params.rotations; ++ir)
