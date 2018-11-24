@@ -41,8 +41,7 @@
 
 #include "test_precomp.hpp"
 
-using namespace cv;
-using namespace cv::line_descriptor;
+namespace opencv_test { namespace {
 
 class CV_BinaryDescriptorMatcherTest : public cvtest::BaseTest
 {
@@ -123,7 +122,7 @@ uchar CV_BinaryDescriptorMatcherTest::invertSingleBits( uchar dividend_char, int
   /* reconvert to decimal */
   uchar result = 0;
   for ( int i = (int) bin_vector.size() - 1; i >= 0; i-- )
-    result += (uchar) ( bin_vector[i] * pow( 2, i ) );
+    result += (uchar) ( bin_vector[i] * ( 1 << i ) );
 
   return result;
 }
@@ -577,3 +576,5 @@ TEST( BinaryDescriptor_Matcher, regression)
   CV_BinaryDescriptorMatcherTest test( 0.01f );
   test.safe_run();
 }
+
+}} // namespace

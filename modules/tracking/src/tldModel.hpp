@@ -42,7 +42,6 @@
 #ifndef OPENCV_TLD_MODEL
 #define OPENCV_TLD_MODEL
 
-#include "precomp.hpp"
 #include "tldDetector.hpp"
 #include "tldUtils.hpp"
 
@@ -71,6 +70,7 @@ namespace cv
 			std::vector<int> timeStampsPositive, timeStampsNegative;
 			int timeStampPositiveNext, timeStampNegativeNext;
 			double originalVariance_;
+			std::vector<double> srValues;
 
 			double getOriginalVariance(){ return originalVariance_; }
 
@@ -78,8 +78,8 @@ namespace cv
 			Size minSize_;
 			TrackerTLD::Params params_;
 			void pushIntoModel(const Mat_<uchar>& example, bool positive);
-			void modelEstimationImpl(const std::vector<Mat>& /*responses*/){}
-			void modelUpdateImpl(){}
+			void modelEstimationImpl(const std::vector<Mat>& /*responses*/) CV_OVERRIDE {}
+			void modelUpdateImpl() CV_OVERRIDE {}
 			Rect2d boundingBox_;
 			RNG rng;
 		};

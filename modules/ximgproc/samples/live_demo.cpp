@@ -11,7 +11,7 @@
  *  Redistribution and use in source and binary forms, with or without modification,
  *  are permitted provided that the following conditions are met :
  *  
- *  *Redistributions of source code must retain the above copyright notice,
+ *  * Redistributions of source code must retain the above copyright notice,
  *  this list of conditions and the following disclaimer.
  *  
  *  * Redistributions in binary form must reproduce the above copyright notice,
@@ -158,7 +158,6 @@ void changeModeCallback(int state, void *filter)
 void changeNumberOfCpuCallback(int count, void*)
 {
     count = std::max(1, count);
-    cv::setNumThreads(count);
     g_numberOfCPUs = count;
 }
 
@@ -188,7 +187,6 @@ int main()
     displayOverlay("Demo", "Press Ctrl+P to show property window", 5000);
     
     //Thread trackbar
-    cv::setNumThreads(g_numberOfCPUs); //speedup filtering
     createTrackbar("Threads", String(), &g_numberOfCPUs, cv::getNumberOfCPUs(), changeNumberOfCpuCallback);
 
     //Buttons to choose different modes
@@ -218,6 +216,8 @@ int main()
         {
             cap >> rawFrame;
         } while (rawFrame.empty());
+
+        cv::setNumThreads(g_numberOfCPUs); //speedup filtering
 
         splitScreen(rawFrame, outputFrame, srcFrame, processedFrame);
         g_filterOp(srcFrame, processedFrame);

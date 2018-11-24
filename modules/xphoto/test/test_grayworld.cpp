@@ -1,8 +1,9 @@
+// This file is part of OpenCV project.
+// It is subject to the license terms in the LICENSE file found in the top-level directory
+// of this distribution and at http://opencv.org/license.html.
 #include "test_precomp.hpp"
 
-namespace cvtest {
-
-    using namespace cv;
+namespace opencv_test { namespace {
 
     void ref_autowbGrayworld(InputArray _src, OutputArray _dst, float thresh)
     {
@@ -66,9 +67,11 @@ namespace cvtest {
     TEST(xphoto_grayworld_white_balance, regression)
     {
         String dir = cvtest::TS::ptr()->get_data_path() + "cv/xphoto/simple_white_balance/";
-        const int nTests = 14;
+        const int nTests = 8;
         const float wb_thresh = 0.5f;
         const float acc_thresh = 2.f;
+        Ptr<xphoto::GrayworldWB> wb = xphoto::createGrayworldWB();
+        wb->setSaturationThreshold(wb_thresh);
 
         for ( int i = 0; i < nTests; ++i )
         {
@@ -80,10 +83,17 @@ namespace cvtest {
             ref_autowbGrayworld(src, referenceResult, wb_thresh);
 
             Mat currentResult;
-            xphoto::autowbGrayworld(src, currentResult, wb_thresh);
+            wb->balanceWhite(src, currentResult);
+            ASSERT_LE(cv::norm(currentResult, referenceResult, NORM_INF), acc_thresh);
 
+            // test the 16-bit depth:
+            Mat currentResult_16U, src_16U;
+            src.convertTo(src_16U, CV_16UC3, 256.0);
+            wb->balanceWhite(src_16U, currentResult_16U);
+            currentResult_16U.convertTo(currentResult, CV_8UC3, 1/256.0);
             ASSERT_LE(cv::norm(currentResult, referenceResult, NORM_INF), acc_thresh);
         }
     }
 
-}
+
+}} // namespace

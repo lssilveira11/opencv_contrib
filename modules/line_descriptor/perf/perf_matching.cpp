@@ -41,12 +41,7 @@
 
 #include "perf_precomp.hpp"
 
-using namespace cv;
-using namespace cv::line_descriptor;
-using namespace std;
-using namespace perf;
-using std::tr1::make_tuple;
-using std::tr1::get;
+namespace opencv_test { namespace {
 
 #define QUERY_DES_COUNT  300
 #define DIM  32
@@ -101,7 +96,7 @@ uchar invertSingleBits( uchar dividend_char, int numBits )
   /* reconvert to decimal */
   uchar result = 0;
   for ( int i = (int) bin_vector.size() - 1; i >= 0; i-- )
-    result += (uchar) ( bin_vector[i] * pow( 2, i ) );
+    result += (uchar) ( bin_vector[i] * ( 1 << i ) );
 
   return result;
 }
@@ -185,3 +180,5 @@ PERF_TEST(radius_match, radius_match_distances_test)
 
 }
 
+
+}} // namespace

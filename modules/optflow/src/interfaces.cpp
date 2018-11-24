@@ -42,7 +42,6 @@
 #include "precomp.hpp"
 
 #include "opencv2/core.hpp"
-#include "opencv2/highgui.hpp"
 #include "opencv2/video.hpp"
 #include "opencv2/optflow.hpp"
 
@@ -54,8 +53,8 @@ class OpticalFlowSimpleFlow : public DenseOpticalFlow
 {
 public:
     OpticalFlowSimpleFlow();
-    void calc(InputArray I0, InputArray I1, InputOutputArray flow);
-    void collectGarbage();
+    void calc(InputArray I0, InputArray I1, InputOutputArray flow) CV_OVERRIDE;
+    void collectGarbage() CV_OVERRIDE;
 
 protected:
     int layers;
@@ -126,8 +125,8 @@ class OpticalFlowFarneback : public DenseOpticalFlow
 {
 public:
     OpticalFlowFarneback();
-    void calc(InputArray I0, InputArray I1, InputOutputArray flow);
-    void collectGarbage();
+    void calc(InputArray I0, InputArray I1, InputOutputArray flow) CV_OVERRIDE;
+    void collectGarbage() CV_OVERRIDE;
 protected:
     int numLevels;
     double pyrScale;
@@ -182,8 +181,8 @@ class OpticalFlowSparseToDense : public DenseOpticalFlow
 {
 public:
     OpticalFlowSparseToDense(int _grid_step, int _k, float _sigma, bool _use_post_proc, float _fgs_lambda, float _fgs_sigma);
-    void calc(InputArray I0, InputArray I1, InputOutputArray flow);
-    void collectGarbage();
+    void calc(InputArray I0, InputArray I1, InputOutputArray flow) CV_OVERRIDE;
+    void collectGarbage() CV_OVERRIDE;
 protected:
     int grid_step;
     int k;

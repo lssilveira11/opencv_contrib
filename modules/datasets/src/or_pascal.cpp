@@ -41,7 +41,14 @@
 
 #include "opencv2/datasets/or_pascal.hpp"
 #include "opencv2/datasets/util.hpp"
-#include <opencv2/datasets/tinyxml2/tinyxml2.h>
+#if defined(__GNUC__) && __GNUC__ >= 5
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsuggest-override"
+#endif
+#include "tinyxml2/tinyxml2.h"
+#if defined(__GNUC__) && __GNUC__ >= 5
+#pragma GCC diagnostic pop
+#endif
 #include <fstream>
 
 namespace cv
@@ -52,17 +59,17 @@ namespace datasets
 using namespace std;
 using namespace tinyxml2;
 
-class OR_pascalImp : public OR_pascal
+class OR_pascalImp CV_FINAL : public OR_pascal
 {
 public:
     OR_pascalImp() {}
 
-    virtual void load(const string &path);
+    virtual void load(const string &path) CV_OVERRIDE;
 
 private:
     void loadDataset(const string &path, const string &nameImageSet, vector< Ptr<Object> > &imageSet);
-    Ptr<Object> parseAnnotation(const string path, const string id);
-    const char*  parseNodeText(XMLElement* node, const string nodeName, const string defaultValue);
+    Ptr<Object> parseAnnotation(const string &path, const string &id);
+    const char*  parseNodeText(XMLElement* node, const string &nodeName, const string &defaultValue);
 };
 
 
@@ -105,17 +112,20 @@ void OR_pascalImp::loadDataset(const string &path, const string &nameImageSet, v
     }
 }
 
-const char* OR_pascalImp::parseNodeText(XMLElement* node, const string nodeName, const string defaultValue)
+const char* OR_pascalImp::parseNodeText(XMLElement* node, const string &nodeName, const string &defaultValue)
 {
-    const char* e = node->FirstChildElement(nodeName.c_str())->GetText();
-
-    if( e != 0 )
-        return e ;
-    else
+    XMLElement* child = node->FirstChildElement(nodeName.c_str());
+    if ( child == 0 )
         return defaultValue.c_str();
+
+    const char* e = child->GetText();
+    if( e == 0 )
+        return defaultValue.c_str();
+
+    return e ;
 }
 
-Ptr<Object> OR_pascalImp::parseAnnotation(const string path, const string id)
+Ptr<Object> OR_pascalImp::parseAnnotation(const string &path, const string &id)
 {
     string pathAnnotations(path + "Annotations/");
     string pathImages(path + "JPEGImages/");
@@ -133,7 +143,6 @@ Ptr<Object> OR_pascalImp::parseAnnotation(const string path, const string id)
         case XML_ERROR_FILE_NOT_FOUND:
             error_message = "XML file not found! " + error_message;
             CV_Error(Error::StsParseError, error_message);
-            return annotation;
         default:
             CV_Error(Error::StsParseError, error_message);
             break;

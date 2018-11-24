@@ -40,13 +40,8 @@
  //M*/
 
 #include "perf_precomp.hpp"
-#include <fstream>
 
-using namespace std;
-using namespace cv;
-using namespace perf;
-using std::tr1::make_tuple;
-using std::tr1::get;
+namespace opencv_test { namespace {
 
 //write sanity: ./bin/opencv_perf_tracking --perf_write_sanity=true --perf_min_samples=1
 //verify sanity: ./bin/opencv_perf_tracking --perf_min_samples=1
@@ -58,7 +53,7 @@ using std::tr1::get;
 const string TRACKING_DIR = "cv/tracking";
 const string FOLDER_IMG = "data";
 
-typedef perf::TestBaseWithParam<tr1::tuple<string, int> > tracking;
+typedef perf::TestBaseWithParam<tuple<string, int> > tracking;
 
 std::vector<std::string> splitString( std::string s, std::string delimiter )
 {
@@ -86,7 +81,7 @@ void checkData( const string& datasetMeta, int& startFrame, string& prefix, stri
 
 bool getGroundTruth( const string& gtFile, vector<Rect>& gtBBs )
 {
-  ifstream gt;
+  std::ifstream gt;
   //open the ground truth
   gt.open( gtFile.c_str() );
   if( !gt.is_open() )
@@ -155,7 +150,7 @@ PERF_TEST_P(tracking, mil, testing::Combine(TESTSET_NAMES, SEGMENTS))
   bool initialized = false;
   vector<Rect> bbs;
 
-  Ptr<Tracker> tracker = Tracker::create( "MIL" );
+  Ptr<Tracker> tracker = TrackerMIL::create();
   string folder = TRACKING_DIR + "/" + video + "/" + FOLDER_IMG;
   int numSegments = ( sizeof ( SEGMENTS)/sizeof(int) );
   int endFrame = 0;
@@ -226,7 +221,7 @@ PERF_TEST_P(tracking, boosting, testing::Combine(TESTSET_NAMES, SEGMENTS))
   bool initialized = false;
   vector<Rect> bbs;
 
-  Ptr<Tracker> tracker = Tracker::create( "BOOSTING" );
+  Ptr<Tracker> tracker = TrackerBoosting::create();
   string folder = TRACKING_DIR + "/" + video + "/" + FOLDER_IMG;
   int numSegments = ( sizeof ( SEGMENTS)/sizeof(int) );
   int endFrame = 0;
@@ -296,7 +291,7 @@ PERF_TEST_P(tracking, tld, testing::Combine(TESTSET_NAMES, SEGMENTS))
   bool initialized = false;
   vector<Rect> bbs;
 
-  Ptr<Tracker> tracker = Tracker::create( "TLD" );
+  Ptr<Tracker> tracker = TrackerTLD::create();
   string folder = TRACKING_DIR + "/" + video + "/" + FOLDER_IMG;
   int numSegments = ( sizeof ( SEGMENTS)/sizeof(int) );
   int endFrame = 0;
@@ -343,3 +338,75 @@ PERF_TEST_P(tracking, tld, testing::Combine(TESTSET_NAMES, SEGMENTS))
   SANITY_CHECK( bbs_mat, 15, ERROR_RELATIVE );
 
 }
+
+PERF_TEST_P(tracking, GOTURN, testing::Combine(TESTSET_NAMES, SEGMENTS))
+{
+  string video = get<0>(GetParam());
+  int segmentId = get<1>(GetParam());
+
+  int startFrame;
+  string prefix;
+  string suffix;
+  string datasetMeta = getDataPath(TRACKING_DIR + "/" + video + "/" + video + ".yml");
+  checkData(datasetMeta, startFrame, prefix, suffix);
+  int gtStartFrame = startFrame;
+
+  vector<Rect> gtBBs;
+  string gtFile = getDataPath(TRACKING_DIR + "/" + video + "/gt.txt");
+  if (!getGroundTruth(gtFile, gtBBs))
+    FAIL() << "Ground truth file " << gtFile << " can not be read" << endl;
+  int bbCounter = (int)gtBBs.size();
+
+  Mat frame;
+  bool initialized = false;
+  vector<Rect> bbs;
+
+  Ptr<Tracker> tracker = TrackerGOTURN::create();
+  string folder = TRACKING_DIR + "/" + video + "/" + FOLDER_IMG;
+  int numSegments = (sizeof(SEGMENTS) / sizeof(int));
+  int endFrame = 0;
+  getSegment(segmentId, numSegments, bbCounter, startFrame, endFrame);
+
+  Rect currentBBi = gtBBs[startFrame - gtStartFrame];
+  Rect2d currentBB(currentBBi);
+
+  TEST_CYCLE_N(1)
+  {
+    VideoCapture c;
+    c.open(getDataPath(TRACKING_DIR + "/" + video + "/" + FOLDER_IMG + "/" + video + ".webm"));
+    c.set(CAP_PROP_POS_FRAMES, startFrame);
+    for (int frameCounter = startFrame; frameCounter < endFrame; frameCounter++)
+    {
+      c >> frame;
+
+      if (frame.empty())
+      {
+        break;
+      }
+
+      if (!initialized)
+      {
+        if (!tracker->init(frame, currentBB))
+        {
+          FAIL() << "Could not initialize tracker" << endl;
+          return;
+        }
+        initialized = true;
+      }
+      else if (initialized)
+      {
+        tracker->update(frame, currentBB);
+      }
+      bbs.push_back(currentBB);
+
+    }
+  }
+  //save the bounding boxes in a Mat
+  Mat bbs_mat((int)bbs.size(), 4, CV_32F);
+  getMatOfRects(bbs, bbs_mat);
+
+  SANITY_CHECK(bbs_mat, 15, ERROR_RELATIVE);
+
+}
+
+}} // namespace

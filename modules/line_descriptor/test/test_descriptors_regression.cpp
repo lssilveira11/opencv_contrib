@@ -41,8 +41,7 @@
 
 #include "test_precomp.hpp"
 
-using namespace cv;
-using namespace cv::line_descriptor;
+namespace opencv_test { namespace {
 
 /****************************************************************************************\
 *            Regression tests for line detector comparing keylines.                 *
@@ -372,3 +371,20 @@ TEST( BinaryDescriptor_Descriptors, regression )
   CV_BD_DescriptorsTest<Hamming> test( std::string( "lbd_descriptors_cameraman" ), 1 );
   test.safe_run();
 }
+
+/****************************************************************************************\
+*                                Other tests                                             *
+ \****************************************************************************************/
+
+TEST( BinaryDescriptor, no_lines_found )
+{
+  Mat Image = Mat::zeros(100, 100, CV_8U);
+  Ptr<line_descriptor::BinaryDescriptor> binDescriptor =
+    line_descriptor::BinaryDescriptor::createBinaryDescriptor();
+
+  std::vector<cv::line_descriptor::KeyLine> keyLines;
+  binDescriptor->detect(Image, keyLines);
+  ASSERT_EQ(keyLines.size(), 0u);
+}
+
+}} // namespace

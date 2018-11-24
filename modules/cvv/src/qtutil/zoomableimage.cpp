@@ -64,8 +64,8 @@ template <int depth, int channels>
 std::string printPixel(const cv::Mat &mat, int spalte, int zeile)
 {
 	std::stringstream ss{};
-	auto p = mat.at<cv::Vec<cvv::qtutil::DepthType<depth>, channels>>(
-	    zeile, spalte);
+	typedef cv::Vec<cvv::qtutil::DepthType<depth>, channels> VecType;
+	const VecType &p = mat.at<VecType>(zeile, spalte);
 
 	putInStream<depth>(ss, p[0]);
 	for (int c = 1; c < mat.channels(); c++)
@@ -137,7 +137,7 @@ template <int depth> std::string printPixel(const cv::Mat &mat, int i, int j)
  * @return The channels of pixel mat,col from mat as a string. (or ">6
  * channels")
  */
-std::string printPixel(const cv::Mat &mat, int i, int j)
+static std::string printPixel(const cv::Mat &mat, int i, int j)
 {
 	if (i >= 0 && j >= 0)
 	{

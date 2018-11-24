@@ -21,7 +21,7 @@ PointMatchView::PointMatchView(std::vector<cv::KeyPoint> leftKeyPoints,
 			       std::vector<cv::DMatch> matches, cv::Mat leftIm,
 			       cv::Mat rightIm, bool usetrainIdx,
 			       QWidget *parent)
-    : MatchView{ parent }
+    : MatchView( parent )
 {
 	auto layout = util::make_unique<QHBoxLayout>();
 	auto accor = util::make_unique<qtutil::Accordion>();
@@ -46,11 +46,11 @@ PointMatchView::PointMatchView(std::vector<cv::KeyPoint> leftKeyPoints,
 
 	accor->insert("Match Settings", std::move(matchmnt));
 	accor->insert("Sync Zoom ",
-		      std::move(matchscene_ptr->getSyncZoomWidget()));
+              matchscene_ptr->getSyncZoomWidget());
 	accor->insert("Left Image ",
-		      std::move(matchscene_ptr->getLeftMatInfoWidget()));
+              matchscene_ptr->getLeftMatInfoWidget());
 	accor->insert("Right Image ",
-		      std::move(matchscene_ptr->getRightMatInfoWidget()));
+              matchscene_ptr->getRightMatInfoWidget());
 
 	layout->addWidget(accor.release());
 	layout->addWidget(matchscene.release());

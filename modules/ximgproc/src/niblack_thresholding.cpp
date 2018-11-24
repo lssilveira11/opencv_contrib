@@ -47,54 +47,86 @@ namespace cv {
 namespace ximgproc {
 
 void niBlackThreshold( InputArray _src, OutputArray _dst, double maxValue,
-        int type, int blockSize, double delta )
+        int type, int blockSize, double k, int binarizationMethod )
 {
+    // Input grayscale image
     Mat src = _src.getMat();
-    CV_Assert( src.type() == CV_8UC1 );
-    CV_Assert( blockSize % 2 == 1 && blockSize > 1 );
-    Size size = src.size();
-
-    _dst.create( size, src.type() );
-    Mat dst = _dst.getMat();
-
-    if( maxValue < 0 )
-    {
-        dst = Scalar(0);
-        return;
+    CV_Assert(src.channels() == 1);
+    CV_Assert(blockSize % 2 == 1 && blockSize > 1);
+    if (binarizationMethod == BINARIZATION_SAUVOLA) {
+	CV_Assert(src.depth() == CV_8U);
     }
+    type &= THRESH_MASK;
 
-    // Calculate and store the mean and mean of squares in the neighborhood
-    // of each pixel and store them in Mat mean and sqmean.
-    Mat_<float> mean(size), sqmean(size);
-
-    if( src.data != dst.data )
-        mean = dst;
-
-    boxFilter( src, mean, CV_64F, Size(blockSize, blockSize),
-            Point(-1,-1), true, BORDER_REPLICATE );
-    sqrBoxFilter( src, sqmean, CV_64F, Size(blockSize, blockSize),
-            Point(-1,-1), true, BORDER_REPLICATE );
-
-    // Compute (k * standard deviation) in the neighborhood of each pixel
-    // and store in Mat stddev. Also threshold the values in the src matrix to compute dst matrix.
-    Mat_<float> stddev(size);
-    int i, j, threshold;
-    uchar imaxval = saturate_cast<uchar>(maxValue);
-    for(i = 0; i < size.height; ++i)
+    // Compute local threshold (T = mean + k * stddev)
+    // using mean and standard deviation in the neighborhood of each pixel
+    // (intermediate calculations are done with floating-point precision)
+    Mat thresh;
     {
-        for(j = 0; j < size.width; ++j)
+        // note that: Var[X] = E[X^2] - E[X]^2
+        Mat mean, sqmean, variance, stddev, sqrtVarianceMeanSum;
+        double srcMin, stddevMax;
+        boxFilter(src, mean, CV_32F, Size(blockSize, blockSize),
+                Point(-1,-1), true, BORDER_REPLICATE);
+        sqrBoxFilter(src, sqmean, CV_32F, Size(blockSize, blockSize),
+                Point(-1,-1), true, BORDER_REPLICATE);
+        variance = sqmean - mean.mul(mean);
+        sqrt(variance, stddev);
+        switch (binarizationMethod)
         {
-            stddev.at<float>(i, j) = saturate_cast<float>(delta) * cvRound( sqrt(sqmean.at<float>(i, j) -
-                        mean.at<float>(i, j)*mean.at<float>(i, j)) );
-            threshold = cvRound(mean.at<float>(i, j) + stddev.at<float>(i, j));
-            if(src.at<uchar>(i, j) > threshold)
-                dst.at<uchar>(i, j) = (type == THRESH_BINARY) ? imaxval : 0;
-            else
-                dst.at<uchar>(i, j) = (type == THRESH_BINARY) ? 0 : imaxval;
+        case BINARIZATION_NIBLACK:
+		thresh = mean + stddev * static_cast<float>(k);
+		break;
+        case BINARIZATION_SAUVOLA:
+		thresh = mean.mul(1. + static_cast<float>(k) * (stddev / 128.0 - 1.));
+		break;
+        case BINARIZATION_WOLF:
+		minMaxIdx(src, &srcMin);
+		minMaxIdx(stddev, NULL, &stddevMax);
+		thresh = mean - static_cast<float>(k) * (mean - srcMin - stddev.mul(mean - srcMin) / stddevMax);
+		break;
+        case BINARIZATION_NICK:
+		sqrt(variance + sqmean, sqrtVarianceMeanSum);
+		thresh = mean + static_cast<float>(k) * sqrtVarianceMeanSum;
+		break;
+        default:
+		CV_Error( CV_StsBadArg, "Unknown binarization method" );
+		break;
         }
+        thresh.convertTo(thresh, src.depth());
     }
 
+    // Prepare output image
+    _dst.create(src.size(), src.type());
+    Mat dst = _dst.getMat();
+    CV_Assert(src.data != dst.data);  // no inplace processing
+
+    // Apply thresholding: ( pixel > threshold ) ? foreground : background
+    Mat mask;
+    switch (type)
+    {
+    case THRESH_BINARY:      // dst = (src > thresh) ? maxval : 0
+    case THRESH_BINARY_INV:  // dst = (src > thresh) ? 0 : maxval
+        compare(src, thresh, mask, (type == THRESH_BINARY ? CMP_GT : CMP_LE));
+        dst.setTo(0);
+        dst.setTo(maxValue, mask);
+        break;
+    case THRESH_TRUNC:       // dst = (src > thresh) ? thresh : src
+        compare(src, thresh, mask, CMP_GT);
+        src.copyTo(dst);
+        thresh.copyTo(dst, mask);
+        break;
+    case THRESH_TOZERO:      // dst = (src > thresh) ? src : 0
+    case THRESH_TOZERO_INV:  // dst = (src > thresh) ? 0 : src
+        compare(src, thresh, mask, (type == THRESH_TOZERO ? CMP_GT : CMP_LE));
+        dst.setTo(0);
+        src.copyTo(dst, mask);
+        break;
+    default:
+        CV_Error( CV_StsBadArg, "Unknown threshold type" );
+        break;
+    }
 }
 
 } // namespace ximgproc
-} //namespace cv
+} // namespace cv

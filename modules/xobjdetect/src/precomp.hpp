@@ -53,11 +53,8 @@ the use of this software, even if advised of the possibility of such damage.
 #include <opencv2/imgproc/types_c.h>
 
 #include <opencv2/core.hpp>
-#include <opencv2/highgui.hpp>
 
 #include <opencv2/imgcodecs.hpp>
-#include <opencv2/imgcodecs/imgcodecs_c.h>
-
 #include <opencv2/objdetect.hpp>
 
 #include <algorithm>
@@ -76,6 +73,5 @@ the use of this software, even if advised of the possibility of such damage.
 #include "lbpfeatures.h"
 #include "waldboost.hpp"
 #include "wbdetector.hpp"
-#include <opencv2/xobjdetect.hpp>
 
 #endif /* __OPENCV_XOBJDETECT_PRECOMP_HPP__ */

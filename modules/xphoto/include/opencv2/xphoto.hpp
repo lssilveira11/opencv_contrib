@@ -49,4 +49,6 @@
 #include "xphoto/inpainting.hpp"
 #include "xphoto/white_balance.hpp"
 #include "xphoto/dct_image_denoising.hpp"
+#include "xphoto/bm3d_image_denoising.hpp"
+#include "xphoto/oilpainting.hpp"
 #endif

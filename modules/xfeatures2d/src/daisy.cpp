@@ -83,7 +83,7 @@ void DAISY::compute( InputArrayOfArrays images,
 /*
  !DAISY implementation
  */
-class DAISY_Impl : public DAISY
+class DAISY_Impl CV_FINAL : public DAISY
 {
 
 public:
@@ -98,42 +98,42 @@ public:
      * @param use_orientation sample patterns using keypoints orientation, disabled by default.
      */
     explicit DAISY_Impl(float radius=15, int q_radius=3, int q_theta=8, int q_hist=8,
-                        int norm = DAISY::NRM_NONE, InputArray H = noArray(),
+                        DAISY::NormalizationType norm = DAISY::NRM_NONE, InputArray H = noArray(),
                         bool interpolation = true, bool use_orientation = false);
 
-    virtual ~DAISY_Impl();
+    virtual ~DAISY_Impl() CV_OVERRIDE;
 
     /** returns the descriptor length in bytes */
-    virtual int descriptorSize() const {
+    virtual int descriptorSize() const CV_OVERRIDE {
         // +1 is for center pixel
         return ( (m_rad_q_no * m_th_q_no + 1) * m_hist_th_q_no );
     };
 
     /** returns the descriptor type */
-    virtual int descriptorType() const { return CV_32F; }
+    virtual int descriptorType() const CV_OVERRIDE { return CV_32F; }
 
     /** returns the default norm type */
-    virtual int defaultNorm() const { return NORM_L2; }
+    virtual int defaultNorm() const CV_OVERRIDE { return NORM_L2; }
 
     /**
      * @param image image to extract descriptors
      * @param keypoints of interest within image
      * @param descriptors resulted descriptors array
      */
-    virtual void compute( InputArray image, std::vector<KeyPoint>& keypoints, OutputArray descriptors );
+    virtual void compute( InputArray image, std::vector<KeyPoint>& keypoints, OutputArray descriptors ) CV_OVERRIDE;
 
     /** @overload
      * @param image image to extract descriptors
      * @param roi region of interest within image
      * @param descriptors resulted descriptors array
      */
-    virtual void compute( InputArray image, Rect roi, OutputArray descriptors );
+    virtual void compute( InputArray image, Rect roi, OutputArray descriptors ) CV_OVERRIDE;
 
     /** @overload
      * @param image image to extract descriptors
      * @param descriptors resulted descriptors array
      */
-    virtual void compute( InputArray image, OutputArray descriptors );
+    virtual void compute( InputArray image, OutputArray descriptors ) CV_OVERRIDE;
 
     /**
      * @param y position y on image
@@ -141,24 +141,7 @@ public:
      * @param orientation orientation on image (0->360)
      * @param descriptor supplied array for descriptor storage
      */
-    virtual void GetDescriptor( double y, double x, int orientation, float* descriptor ) const;
-
-    /**
-     * @param y position y on image
-     * @param x position x on image
-     * @param orientation orientation on image (0->360)
-     * @param descriptor supplied array for descriptor storage
-     * @param H homography matrix for warped grid
-     */
-    virtual bool GetDescriptor( double y, double x, int orientation, float* descriptor, double* H ) const;
-
-    /**
-     * @param y position y on image
-     * @param x position x on image
-     * @param orientation orientation on image (0->360)
-     * @param descriptor supplied array for descriptor storage
-     */
-    virtual void GetUnnormalizedDescriptor( double y, double x, int orientation, float* descriptor ) const;
+    virtual void GetDescriptor( double y, double x, int orientation, float* descriptor ) const CV_OVERRIDE;
 
     /**
      * @param y position y on image
@@ -167,7 +150,24 @@ public:
      * @param descriptor supplied array for descriptor storage
      * @param H homography matrix for warped grid
      */
-    virtual bool GetUnnormalizedDescriptor( double y, double x, int orientation, float* descriptor, double* H ) const;
+    virtual bool GetDescriptor( double y, double x, int orientation, float* descriptor, double* H ) const CV_OVERRIDE;
+
+    /**
+     * @param y position y on image
+     * @param x position x on image
+     * @param orientation orientation on image (0->360)
+     * @param descriptor supplied array for descriptor storage
+     */
+    virtual void GetUnnormalizedDescriptor( double y, double x, int orientation, float* descriptor ) const CV_OVERRIDE;
+
+    /**
+     * @param y position y on image
+     * @param x position x on image
+     * @param orientation orientation on image (0->360)
+     * @param descriptor supplied array for descriptor storage
+     * @param H homography matrix for warped grid
+     */
+    virtual bool GetUnnormalizedDescriptor( double y, double x, int orientation, float* descriptor, double* H ) const CV_OVERRIDE;
 
 protected:
 
@@ -189,7 +189,7 @@ protected:
 
     // holds the type of the normalization to apply; equals to NRM_PARTIAL by
     // default. change the value using set_normalization() function.
-    int m_nrm_type;
+    DAISY::NormalizationType m_nrm_type;
 
     // the size of the descriptor vector
     int m_descriptor_size;
@@ -410,7 +410,7 @@ struct LayeredGradientInvoker : ParallelLoopBody
       layer_no = layers->size[0];
     }
 
-    void operator ()(const cv::Range& range) const
+    void operator ()(const cv::Range& range) const CV_OVERRIDE
     {
       for (int l = range.start; l < range.end; ++l)
       {
@@ -450,7 +450,7 @@ struct SmoothLayersInvoker : ParallelLoopBody
       ks = filter_size( sigma, 5.0f );
     }
 
-    void operator ()(const cv::Range& range) const
+    void operator ()(const cv::Range& range) const CV_OVERRIDE
     {
       for (int l = range.start; l < range.end; ++l)
       {
@@ -561,7 +561,7 @@ static void normalize_full( float* desc, const int _descriptor_size )
     }
 }
 
-static void normalize_descriptor( float* desc, const int nrm_type, const int _grid_point_number,
+static void normalize_descriptor( float* desc, const DAISY::NormalizationType nrm_type, const int _grid_point_number,
                                   const int _hist_th_q_no, const int _descriptor_size  )
 {
     if( nrm_type == DAISY::NRM_NONE ) return;
@@ -576,11 +576,11 @@ static void ni_get_histogram( float* histogram, const int y, const int x, const 
 {
 
     if ( ! Point( x, y ).inside(
-           Rect( 0, 0, hcube->size[2]-1, hcube->size[1]-1 ) )
+           Rect( 0, 0, hcube->size[1]-1, hcube->size[0]-1 ) )
        ) return;
 
-    int _hist_th_q_no = hcube->size[0];
-    const float* hptr = hcube->ptr<float>(0,y*_hist_th_q_no,x*_hist_th_q_no);
+    int _hist_th_q_no = hcube->size[2];
+    const float* hptr = hcube->ptr<float>(y,x,0);
     for( int h=0; h<_hist_th_q_no; h++ )
     {
       int hi = h+shift;
@@ -593,8 +593,8 @@ static void bi_get_histogram( float* histogram, const double y, const double x, 
 {
     int mnx = int( x );
     int mny = int( y );
-    int _hist_th_q_no = hcube->size[0];
-    if( mnx >= hcube->size[2]-2  || mny >= hcube->size[1]-2 )
+    int _hist_th_q_no = hcube->size[2];
+    if( mnx >= hcube->size[1]-2  || mny >= hcube->size[0]-2 )
     {
       memset(histogram, 0, sizeof(float)*_hist_th_q_no);
       return;
@@ -602,10 +602,10 @@ static void bi_get_histogram( float* histogram, const double y, const double x, 
 
     // A C --> pixel positions
     // B D
-    const float* A = hcube->ptr<float>(0,  mny   ,  mnx   );
-    const float* B = hcube->ptr<float>(0, (mny+1),  mnx   );
-    const float* C = hcube->ptr<float>(0,  mny   , (mnx+1));
-    const float* D = hcube->ptr<float>(0, (mny+1), (mnx+1));
+    const float* A = hcube->ptr<float>( mny   ,  mnx   , 0);
+    const float* B = hcube->ptr<float>((mny+1),  mnx   , 0);
+    const float* C = hcube->ptr<float>( mny   , (mnx+1), 0);
+    const float* D = hcube->ptr<float>((mny+1), (mnx+1), 0);
 
     double alpha = mnx+1-x;
     double beta  = mny+1-y;
@@ -643,7 +643,7 @@ static void ti_get_histogram( float* histogram, const double y, const double x, 
     float thist[MAX_CUBE_NO];
     bi_get_histogram( thist, y, x, ishift, hcube );
 
-    int _hist_th_q_no = hcube->size[0];
+    int _hist_th_q_no = hcube->size[2];
     for( int h=0; h<_hist_th_q_no-1; h++ )
       histogram[h] = (float) ((1-layer_alpha)*thist[h]+layer_alpha*thist[h+1]);
     histogram[_hist_th_q_no-1] = (float) ((1-layer_alpha)*thist[_hist_th_q_no-1]+layer_alpha*thist[0]);
@@ -661,15 +661,15 @@ static void i_get_histogram( float* histogram, const double y, const double x, c
 static void ni_get_descriptor( const double y, const double x, const int orientation, float* descriptor, const std::vector<Mat>* layers,
                                const Mat* _oriented_grid_points, const double* _orientation_shift_table, const int _th_q_no )
 {
-    CV_Assert( y >= 0 && y < layers->at(0).size[1] );
-    CV_Assert( x >= 0 && x < layers->at(0).size[2] );
+    CV_Assert( y >= 0 && y < layers->at(0).size[0] );
+    CV_Assert( x >= 0 && x < layers->at(0).size[1] );
     CV_Assert( orientation >= 0 && orientation < 360 );
     CV_Assert( !layers->empty() );
     CV_Assert( !_oriented_grid_points->empty() );
     CV_Assert( descriptor != NULL );
 
-    int _rad_q_no = (int) layers->size() - 1;
-    int _hist_th_q_no = layers->at(0).size[0];
+    int _rad_q_no = (int) layers->size();
+    int _hist_th_q_no = layers->at(0).size[2];
     double shift = _orientation_shift_table[orientation];
     int ishift = (int)shift;
     if( shift - ishift > 0.5  ) ishift++;
@@ -696,7 +696,7 @@ static void ni_get_descriptor( const double y, const double x, const int orienta
          ix = (int)xx; if( xx - ix > 0.5 ) ix++;
 
          if ( ! Point2f( (float)xx, (float)yy ).inside(
-                Rect( 0, 0, layers->at(0).size[2]-1, layers->at(0).size[1]-1 ) )
+                Rect( 0, 0, layers->at(0).size[1]-1, layers->at(0).size[0]-1 ) )
             ) continue;
 
          histogram = descriptor + region*_hist_th_q_no;
@@ -708,15 +708,15 @@ static void ni_get_descriptor( const double y, const double x, const int orienta
 static void i_get_descriptor( const double y, const double x, const int orientation, float* descriptor, const std::vector<Mat>* layers,
                               const Mat* _oriented_grid_points, const double *_orientation_shift_table, const int _th_q_no )
 {
-    CV_Assert( y >= 0 && y < layers->at(0).size[1] );
-    CV_Assert( x >= 0 && x < layers->at(0).size[2] );
+    CV_Assert( y >= 0 && y < layers->at(0).size[0] );
+    CV_Assert( x >= 0 && x < layers->at(0).size[1] );
     CV_Assert( orientation >= 0 && orientation < 360 );
     CV_Assert( !layers->empty() );
     CV_Assert( !_oriented_grid_points->empty() );
     CV_Assert( descriptor != NULL );
 
-    int _rad_q_no = (int) layers->size() - 1;
-    int _hist_th_q_no = layers->at(0).size[0];
+    int _rad_q_no = (int) layers->size();
+    int _hist_th_q_no = layers->at(0).size[2];
     double shift = _orientation_shift_table[orientation];
 
     i_get_histogram( descriptor, y, x, shift, &layers->at(g_selected_cubes[0]) );
@@ -737,7 +737,7 @@ static void i_get_descriptor( const double y, const double x, const int orientat
          xx = x + grid.at<double>(2*region + 1);
 
          if ( ! Point2f( (float)xx, (float)yy ).inside(
-                Rect( 0, 0, layers->at(0).size[2]-1, layers->at(0).size[1]-1 ) )
+                Rect( 0, 0, layers->at(0).size[1]-1, layers->at(0).size[0]-1 ) )
             ) continue;
 
          histogram = descriptor + region*_hist_th_q_no;
@@ -760,11 +760,11 @@ static bool ni_get_descriptor_h( const double y, const double x, const int orien
     pt_H(H, x, y, hx, hy );
 
     if ( ! Point2f( (float)hx, (float)hy ).inside(
-                Rect( 0, 0, layers->at(0).size[2]-1, layers->at(0).size[1]-1 ) )
+                Rect( 0, 0, layers->at(0).size[1]-1, layers->at(0).size[0]-1 ) )
        ) return false;
 
-    int _rad_q_no = (int) layers->size() - 1;
-    int _hist_th_q_no = layers->at(0).size[0];
+    int _rad_q_no = (int) layers->size();
+    int _hist_th_q_no = layers->at(0).size[2];
     double shift = _orientation_shift_table[orientation];
     int  ishift = (int)shift; if( shift - ishift > 0.5  ) ishift++;
 
@@ -803,7 +803,7 @@ static bool ni_get_descriptor_h( const double y, const double x, const int orien
          ihy = (int)hy; if( hy - ihy > 0.5 ) ihy++;
 
          if ( ! Point( ihx, ihy ).inside(
-                Rect( 0, 0, layers->at(0).size[2]-1, layers->at(0).size[1]-1 ) )
+                Rect( 0, 0, layers->at(0).size[1]-1, layers->at(0).size[0]-1 ) )
             ) continue;
 
          histogram = descriptor + region*_hist_th_q_no;
@@ -826,10 +826,10 @@ static bool i_get_descriptor_h( const double y, const double x, const int orient
     pt_H( H, x, y, hx, hy );
 
     if ( ! Point2f( (float)hx, (float)hy ).inside(
-                Rect( 0, 0, layers->at(0).size[2]-1, layers->at(0).size[1]-1 ) )
+                Rect( 0, 0, layers->at(0).size[1]-1, layers->at(0).size[0]-1 ) )
        ) return false;
 
-    int _rad_q_no = (int) layers->size() - 1;
+    int _rad_q_no = (int) layers->size();
     int _hist_th_q_no = layers->at(0).size[0];
     pt_H( H, x+_cube_sigmas.at<double>(g_selected_cubes[0]), y, rx, ry);
     double d0 = rx - hx; double d1 = ry - hy;
@@ -862,7 +862,7 @@ static bool i_get_descriptor_h( const double y, const double x, const int orient
          }
 
          if ( ! Point2f( (float)hx, (float)hy ).inside(
-                Rect( 0, 0, layers->at(0).size[2]-1, layers->at(0).size[1]-1 ) )
+                Rect( 0, 0, layers->at(0).size[1]-1, layers->at(0).size[0]-1 ) )
             ) continue;
 
          histogram = descriptor + region*_hist_th_q_no;
@@ -888,7 +888,7 @@ static void get_descriptor( const double y, const double x, const int orientatio
             const std::vector<Mat>* m_smoothed_gradient_layers, const Mat* m_oriented_grid_points,
             const double* m_orientation_shift_table, const int m_th_q_no, const int m_hist_th_q_no,
             const int m_grid_point_number, const int m_descriptor_size, const bool m_enable_interpolation,
-            const int m_nrm_type )
+            const DAISY::NormalizationType m_nrm_type)
 {
     get_unnormalized_descriptor( y, x, orientation, descriptor, m_smoothed_gradient_layers,
                                  m_oriented_grid_points, m_orientation_shift_table, m_th_q_no, m_enable_interpolation );
@@ -912,7 +912,7 @@ static bool get_descriptor_h( const double y, const double x, const int orientat
             const std::vector<Mat>* m_smoothed_gradient_layers, const Mat& m_cube_sigmas,
             const Mat* m_grid_points, const double* m_orientation_shift_table, const int m_th_q_no,
             const int m_hist_th_q_no, const int m_grid_point_number, const int m_descriptor_size,
-            const bool m_enable_interpolation, const int m_nrm_type  )
+            const bool m_enable_interpolation, const DAISY::NormalizationType m_nrm_type)
 
 {
     bool rval =
@@ -1003,7 +1003,7 @@ struct ComputeDescriptorsInvoker : ParallelLoopBody
       orientation_shift_table = _orientation_shift_table;
     }
 
-    void operator ()(const cv::Range& range) const
+    void operator ()(const cv::Range& range) const CV_OVERRIDE
     {
       int index, orientation;
       for (int y = range.start; y < range.end; ++y)
@@ -1054,7 +1054,7 @@ inline void DAISY_Impl::compute_descriptors( Mat* m_dense_descriptors )
 
 struct NormalizeDescriptorsInvoker : ParallelLoopBody
 {
-    NormalizeDescriptorsInvoker( Mat* _descriptors, int _nrm_type, int _grid_point_number,
+    NormalizeDescriptorsInvoker( Mat* _descriptors, DAISY::NormalizationType _nrm_type, int _grid_point_number,
                                  int _hist_th_q_no, int _descriptor_size )
     {
       descriptors = _descriptors;
@@ -1064,7 +1064,7 @@ struct NormalizeDescriptorsInvoker : ParallelLoopBody
       descriptor_size = _descriptor_size;
     }
 
-    void operator ()(const cv::Range& range) const
+    void operator ()(const cv::Range& range) const CV_OVERRIDE
     {
       for (int d = range.start; d < range.end; ++d)
       {
@@ -1074,7 +1074,7 @@ struct NormalizeDescriptorsInvoker : ParallelLoopBody
     }
 
     Mat *descriptors;
-    int nrm_type;
+    DAISY::NormalizationType nrm_type;
     int grid_point_number;
     int hist_th_q_no;
     int descriptor_size;
@@ -1096,8 +1096,8 @@ inline void DAISY_Impl::initialize()
     CV_Assert(m_image.rows != 0);
     CV_Assert(m_image.cols != 0);
 
-    // (m_rad_q_no + 1) matrices
-    // 3 dims matrix (idhist, img_y, img_x);
+    // (m_rad_q_no + 1) cubes
+    // 3 dims tensor (idhist, img_y, img_x);
     m_smoothed_gradient_layers.resize( m_rad_q_no + 1 );
 
     int dims[3] = { m_hist_th_q_no, m_image.rows, m_image.cols };
@@ -1143,23 +1143,20 @@ struct ComputeHistogramsInvoker : ParallelLoopBody
     {
       r = _r;
       layers = _layers;
-      _hist_th_q_no = layers->at(r).size[0];
+      _hist_th_q_no = layers->at(r).size[2];
     }
 
-    void operator ()(const cv::Range& range) const
+    void operator ()(const cv::Range& range) const CV_OVERRIDE
     {
       for (int y = range.start; y < range.end; ++y)
       {
-        for( int x = 0; x < layers->at(r).size[2]; x++ )
+        for( int x = 0; x < layers->at(r).size[1]; x++ )
         {
-          if ( ! Point( x, y ).inside(
-               Rect( 0, 0, layers->at(r).size[2]-1, layers->at(r).size[1]-1 ) )
-             ) continue;
-
-          float* hist = layers->at(r).ptr<float>(0,y,x);
-
+          float* hist = layers->at(r).ptr<float>(y,x,0);
           for( int h = 0; h < _hist_th_q_no; h++ )
+          {
             hist[h] = layers->at(r+1).at<float>(h,y,x);
+          }
         }
       }
     }
@@ -1172,8 +1169,25 @@ inline void DAISY_Impl::compute_histograms()
 {
     for( int r=0; r<m_rad_q_no; r++ )
     {
+      // remap cubes from Mat(h,y,x) -> Mat(y,x,h)
+      // final sampling is speeded up by aligned h dim
+      int m_h = m_smoothed_gradient_layers.at(r).size[0];
+      int m_y = m_smoothed_gradient_layers.at(r).size[1];
+      int m_x = m_smoothed_gradient_layers.at(r).size[2];
+
+      // empty targeted cube
+      m_smoothed_gradient_layers.at(r).release();
+
+      // recreate cube space
+      int dims[3] = { m_y, m_x, m_h };
+      m_smoothed_gradient_layers.at(r) = Mat( 3, dims, CV_32F );
+
+      // copy backward all cubes and realign structure
       parallel_for_( Range(0, m_image.rows), ComputeHistogramsInvoker( &m_smoothed_gradient_layers, r ) );
     }
+    // trim unused region from collection of cubes
+    m_smoothed_gradient_layers[m_rad_q_no].release();
+    m_smoothed_gradient_layers.pop_back();
 }
 
 inline void DAISY_Impl::compute_smoothed_gradient_layers()
@@ -1237,7 +1251,7 @@ struct MaxDoGInvoker : ParallelLoopBody
       scale_map = _scale_map;
     }
 
-    void operator ()(const cv::Range& range) const
+    void operator ()(const cv::Range& range) const CV_OVERRIDE
     {
       for (int c = range.start; c < range.end; ++c)
       {
@@ -1263,7 +1277,7 @@ struct RoundingInvoker : ParallelLoopBody
       scale_map = _scale_map;
     }
 
-    void operator ()(const cv::Range& range) const
+    void operator ()(const cv::Range& range) const CV_OVERRIDE
     {
       for (int c = range.start; c < range.end; ++c)
       {
@@ -1576,7 +1590,7 @@ void DAISY_Impl::compute( InputArray _image, OutputArray _descriptors )
 
 // constructor
 DAISY_Impl::DAISY_Impl( float _radius, int _q_radius, int _q_theta, int _q_hist,
-             int _norm, InputArray _H, bool _interpolation, bool _use_orientation )
+             DAISY::NormalizationType _norm, InputArray _H, bool _interpolation, bool _use_orientation )
            : m_rad(_radius), m_rad_q_no(_q_radius), m_th_q_no(_q_theta), m_hist_th_q_no(_q_hist),
              m_nrm_type(_norm), m_enable_interpolation(_interpolation), m_use_orientation(_use_orientation)
 {
@@ -1598,7 +1612,7 @@ DAISY_Impl::~DAISY_Impl()
 }
 
 Ptr<DAISY> DAISY::create( float radius, int q_radius, int q_theta, int q_hist,
-             int norm, InputArray H, bool interpolation, bool use_orientation)
+             DAISY::NormalizationType norm, InputArray H, bool interpolation, bool use_orientation)
 {
     return makePtr<DAISY_Impl>(radius, q_radius, q_theta, q_hist, norm, H, interpolation, use_orientation);
 }

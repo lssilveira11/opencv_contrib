@@ -38,12 +38,8 @@ the use of this software, even if advised of the possibility of such damage.
 
 
 #include "test_precomp.hpp"
-#include <opencv2/aruco/charuco.hpp>
-#include <string>
 
-using namespace std;
-using namespace cv;
-
+namespace opencv_test { namespace {
 
 static double deg2rad(double deg) { return deg * CV_PI / 180.; }
 
@@ -98,7 +94,7 @@ static void getSyntheticRT(double yaw, double pitch, double distance, Mat &rvec,
 /**
  * @brief Project a synthetic marker
  */
-static void projectMarker(Mat &img, aruco::Dictionary dictionary, int id,
+static void projectMarker(Mat &img, Ptr<aruco::Dictionary> dictionary, int id,
                           vector< Point3f > markerObjPoints, Mat cameraMatrix, Mat rvec, Mat tvec,
                           int markerBorder) {
 
@@ -176,7 +172,7 @@ static Mat projectChessboard(int squaresX, int squaresY, float squareSize, Size 
 /**
  * @brief Check pose estimation of charuco board
  */
-static Mat projectCharucoBoard(aruco::CharucoBoard board, Mat cameraMatrix, double yaw,
+static Mat projectCharucoBoard(Ptr<aruco::CharucoBoard> &board, Mat cameraMatrix, double yaw,
                                double pitch, double distance, Size imageSize, int markerBorder,
                                Mat &rvec, Mat &tvec) {
 
@@ -184,15 +180,15 @@ static Mat projectCharucoBoard(aruco::CharucoBoard board, Mat cameraMatrix, doub
 
     // project markers
     Mat img = Mat(imageSize, CV_8UC1, Scalar::all(255));
-    for(unsigned int m = 0; m < board.ids.size(); m++) {
-        projectMarker(img, board.dictionary, board.ids[m], board.objPoints[m], cameraMatrix, rvec,
+    for(unsigned int m = 0; m < board->ids.size(); m++) {
+        projectMarker(img, board->dictionary, board->ids[m], board->objPoints[m], cameraMatrix, rvec,
                       tvec, markerBorder);
     }
 
     // project chessboard
     Mat chessboard =
-        projectChessboard(board.getChessboardSize().width, board.getChessboardSize().height,
-                          board.getSquareLength(), imageSize, cameraMatrix, rvec, tvec);
+        projectChessboard(board->getChessboardSize().width, board->getChessboardSize().height,
+                          board->getSquareLength(), imageSize, cameraMatrix, rvec, tvec);
 
     for(unsigned int i = 0; i < chessboard.total(); i++) {
         if(chessboard.ptr< unsigned char >()[i] == 0) {
@@ -226,8 +222,8 @@ void CV_CharucoDetection::run(int) {
     int iter = 0;
     Mat cameraMatrix = Mat::eye(3, 3, CV_64FC1);
     Size imgSize(500, 500);
-    aruco::Dictionary dictionary = aruco::getPredefinedDictionary(aruco::DICT_6X6_250);
-    aruco::CharucoBoard board = aruco::CharucoBoard::create(4, 4, 0.03f, 0.015f, dictionary);
+    Ptr<aruco::Dictionary> dictionary = aruco::getPredefinedDictionary(aruco::DICT_6X6_250);
+    Ptr<aruco::CharucoBoard> board = aruco::CharucoBoard::create(4, 4, 0.03f, 0.015f, dictionary);
 
     cameraMatrix.at< double >(0, 0) = cameraMatrix.at< double >(1, 1) = 650;
     cameraMatrix.at< double >(0, 2) = imgSize.width / 2;
@@ -251,9 +247,9 @@ void CV_CharucoDetection::run(int) {
                 // detect markers
                 vector< vector< Point2f > > corners;
                 vector< int > ids;
-                aruco::DetectorParameters params;
-                params.minDistanceToBorder = 3;
-                params.markerBorderBits = markerBorder;
+                Ptr<aruco::DetectorParameters> params = aruco::DetectorParameters::create();
+                params->minDistanceToBorder = 3;
+                params->markerBorderBits = markerBorder;
                 aruco::detectMarkers(img, dictionary, corners, ids, params);
 
                 if(ids.size() == 0) {
@@ -276,20 +272,20 @@ void CV_CharucoDetection::run(int) {
 
                 // check results
                 vector< Point2f > projectedCharucoCorners;
-                projectPoints(board.chessboardCorners, rvec, tvec, cameraMatrix, distCoeffs,
+                projectPoints(board->chessboardCorners, rvec, tvec, cameraMatrix, distCoeffs,
                               projectedCharucoCorners);
 
                 for(unsigned int i = 0; i < charucoIds.size(); i++) {
 
                     int currentId = charucoIds[i];
 
-                    if(currentId >= (int)board.chessboardCorners.size()) {
+                    if(currentId >= (int)board->chessboardCorners.size()) {
                         ts->printf(cvtest::TS::LOG, "Invalid Charuco corner id");
                         ts->set_failed_test_info(cvtest::TS::FAIL_MISMATCH);
                         return;
                     }
 
-                    double repError = norm(charucoCorners[i] - projectedCharucoCorners[currentId]);
+                    double repError = cv::norm(charucoCorners[i] - projectedCharucoCorners[currentId]);  // TODO cvtest
 
 
                     if(repError > 5.) {
@@ -325,8 +321,8 @@ void CV_CharucoPoseEstimation::run(int) {
     int iter = 0;
     Mat cameraMatrix = Mat::eye(3, 3, CV_64FC1);
     Size imgSize(500, 500);
-    aruco::Dictionary dictionary = aruco::getPredefinedDictionary(aruco::DICT_6X6_250);
-    aruco::CharucoBoard board = aruco::CharucoBoard::create(4, 4, 0.03f, 0.015f, dictionary);
+    Ptr<aruco::Dictionary> dictionary = aruco::getPredefinedDictionary(aruco::DICT_6X6_250);
+    Ptr<aruco::CharucoBoard> board = aruco::CharucoBoard::create(4, 4, 0.03f, 0.015f, dictionary);
 
     cameraMatrix.at< double >(0, 0) = cameraMatrix.at< double >(1, 1) = 650;
     cameraMatrix.at< double >(0, 2) = imgSize.width / 2;
@@ -349,9 +345,9 @@ void CV_CharucoPoseEstimation::run(int) {
                 // detect markers
                 vector< vector< Point2f > > corners;
                 vector< int > ids;
-                aruco::DetectorParameters params;
-                params.minDistanceToBorder = 3;
-                params.markerBorderBits = markerBorder;
+                Ptr<aruco::DetectorParameters> params = aruco::DetectorParameters::create();
+                params->minDistanceToBorder = 3;
+                params->markerBorderBits = markerBorder;
                 aruco::detectMarkers(img, dictionary, corners, ids, params);
 
                 if(ids.size() == 0) {
@@ -381,20 +377,20 @@ void CV_CharucoPoseEstimation::run(int) {
 
                 // check result
                 vector< Point2f > projectedCharucoCorners;
-                projectPoints(board.chessboardCorners, rvec, tvec, cameraMatrix, distCoeffs,
+                projectPoints(board->chessboardCorners, rvec, tvec, cameraMatrix, distCoeffs,
                               projectedCharucoCorners);
 
                 for(unsigned int i = 0; i < charucoIds.size(); i++) {
 
                     int currentId = charucoIds[i];
 
-                    if(currentId >= (int)board.chessboardCorners.size()) {
+                    if(currentId >= (int)board->chessboardCorners.size()) {
                         ts->printf(cvtest::TS::LOG, "Invalid Charuco corner id");
                         ts->set_failed_test_info(cvtest::TS::FAIL_MISMATCH);
                         return;
                     }
 
-                    double repError = norm(charucoCorners[i] - projectedCharucoCorners[currentId]);
+                    double repError = cv::norm(charucoCorners[i] - projectedCharucoCorners[currentId]);  // TODO cvtest
 
 
                     if(repError > 5.) {
@@ -429,10 +425,10 @@ void CV_CharucoDiamondDetection::run(int) {
     int iter = 0;
     Mat cameraMatrix = Mat::eye(3, 3, CV_64FC1);
     Size imgSize(500, 500);
-    aruco::Dictionary dictionary = aruco::getPredefinedDictionary(aruco::DICT_6X6_250);
+    Ptr<aruco::Dictionary> dictionary = aruco::getPredefinedDictionary(aruco::DICT_6X6_250);
     float squareLength = 0.03f;
     float markerLength = 0.015f;
-    aruco::CharucoBoard board =
+    Ptr<aruco::CharucoBoard> board =
         aruco::CharucoBoard::create(3, 3, squareLength, markerLength, dictionary);
 
     cameraMatrix.at< double >(0, 0) = cameraMatrix.at< double >(1, 1) = 650;
@@ -447,7 +443,7 @@ void CV_CharucoDiamondDetection::run(int) {
 
                 int markerBorder = iter % 2 + 1;
                 for(int i = 0; i < 4; i++)
-                    board.ids[i] = 4 * iter + i;
+                    board->ids[i] = 4 * iter + i;
                 iter++;
 
                 // get synthetic image
@@ -458,9 +454,9 @@ void CV_CharucoDiamondDetection::run(int) {
                 // detect markers
                 vector< vector< Point2f > > corners;
                 vector< int > ids;
-                aruco::DetectorParameters params;
-                params.minDistanceToBorder = 0;
-                params.markerBorderBits = markerBorder;
+                Ptr<aruco::DetectorParameters> params = aruco::DetectorParameters::create();
+                params->minDistanceToBorder = 0;
+                params->markerBorderBits = markerBorder;
                 aruco::detectMarkers(img, dictionary, corners, ids, params);
 
                 if(ids.size() != 4) {
@@ -483,7 +479,7 @@ void CV_CharucoDiamondDetection::run(int) {
                 }
 
                 for(int i = 0; i < 4; i++) {
-                    if(diamondIds[0][i] != board.ids[i]) {
+                    if(diamondIds[0][i] != board->ids[i]) {
                         ts->printf(cvtest::TS::LOG, "Incorrect diamond ids");
                         ts->set_failed_test_info(cvtest::TS::FAIL_MISMATCH);
                         return;
@@ -492,7 +488,7 @@ void CV_CharucoDiamondDetection::run(int) {
 
 
                 vector< Point2f > projectedDiamondCorners;
-                projectPoints(board.chessboardCorners, rvec, tvec, cameraMatrix, distCoeffs,
+                projectPoints(board->chessboardCorners, rvec, tvec, cameraMatrix, distCoeffs,
                               projectedDiamondCorners);
 
                 vector< Point2f > projectedDiamondCornersReorder(4);
@@ -504,8 +500,7 @@ void CV_CharucoDiamondDetection::run(int) {
 
                 for(unsigned int i = 0; i < 4; i++) {
 
-                    double repError =
-                        norm(diamondCorners[0][i] - projectedDiamondCornersReorder[i]);
+                    double repError = cv::norm(diamondCorners[0][i] - projectedDiamondCornersReorder[i]);  // TODO cvtest
 
                     if(repError > 5.) {
                         ts->printf(cvtest::TS::LOG, "Diamond corner reprojection error too high");
@@ -530,8 +525,7 @@ void CV_CharucoDiamondDetection::run(int) {
                               distCoeffs, projectedDiamondCornersPose);
 
                 for(unsigned int i = 0; i < 4; i++) {
-                    double repError =
-                        norm(projectedDiamondCornersReorder[i] - projectedDiamondCornersPose[i]);
+                    double repError = cv::norm(projectedDiamondCornersReorder[i] - projectedDiamondCornersPose[i]);  // TODO cvtest
 
                     if(repError > 5.) {
                         ts->printf(cvtest::TS::LOG, "Charuco pose error too high");
@@ -544,14 +538,54 @@ void CV_CharucoDiamondDetection::run(int) {
     }
 }
 
+/**
+* @brief Check charuco board creation
+*/
+class CV_CharucoBoardCreation : public cvtest::BaseTest {
+public:
+    CV_CharucoBoardCreation();
 
+protected:
+    void run(int);
+};
+
+CV_CharucoBoardCreation::CV_CharucoBoardCreation() {}
+
+void CV_CharucoBoardCreation::run(int)
+{
+    Ptr<aruco::Dictionary> dictionary = aruco::getPredefinedDictionary(aruco::DICT_5X5_250);
+    int n = 6;
+
+    float markerSizeFactor = 0.5f;
+
+    for (float squareSize_mm = 5.0f; squareSize_mm < 35.0f; squareSize_mm += 0.1f)
+    {
+        Ptr<aruco::CharucoBoard> board_meters = aruco::CharucoBoard::create(
+            n, n, squareSize_mm*1e-3f, squareSize_mm * markerSizeFactor * 1e-3f, dictionary);
+
+        Ptr<aruco::CharucoBoard> board_millimeters = aruco::CharucoBoard::create(
+            n, n, squareSize_mm, squareSize_mm * markerSizeFactor, dictionary);
+
+        for (size_t i = 0; i < board_meters->nearestMarkerIdx.size(); i++)
+        {
+            if (board_meters->nearestMarkerIdx[i].size() != board_millimeters->nearestMarkerIdx[i].size() ||
+                board_meters->nearestMarkerIdx[i][0] != board_millimeters->nearestMarkerIdx[i][0])
+            {
+                ts->printf(cvtest::TS::LOG,
+                    cv::format("Charuco board topology is sensitive to scale with squareSize=%.1f\n",
+                        squareSize_mm).c_str());
+                ts->set_failed_test_info(cvtest::TS::FAIL_INVALID_OUTPUT);
+                break;
+            }
+        }
+    }
+}
 
 
 TEST(CV_CharucoDetection, accuracy) {
     CV_CharucoDetection test;
     test.safe_run();
 }
-
 
 TEST(CV_CharucoPoseEstimation, accuracy) {
     CV_CharucoPoseEstimation test;
@@ -562,3 +596,10 @@ TEST(CV_CharucoDiamondDetection, accuracy) {
     CV_CharucoDiamondDetection test;
     test.safe_run();
 }
+
+TEST(CV_CharucoBoardCreation, accuracy) {
+    CV_CharucoBoardCreation test;
+    test.safe_run();
+}
+
+}} // namespace
