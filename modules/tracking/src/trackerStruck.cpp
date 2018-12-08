@@ -250,11 +250,11 @@ namespace cv
 		customSeed = -1;
     }
 
-    void TrackerStruck::Params::read( const cv::FileNode& fn ){
+    void TrackerStruck::Params::read( const cv::FileNode& /*fn*/ ){
 
     }
 
-    void TrackerStruck::Params::write( cv::FileStorage& fs ) const{
+    void TrackerStruck::Params::write( cv::FileStorage& /*fs*/ ) const{
 
     }
 
